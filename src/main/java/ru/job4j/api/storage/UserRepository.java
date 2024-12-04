@@ -1,7 +1,13 @@
 package ru.job4j.api.storage;
 
-import org.springframework.stereotype.Repository;
+import ru.job4j.api.model.User;
 
-@Repository
-public class UserRepository {
+import java.util.List;
+
+public interface UserRepository {
+
+    List<User> findAll();
+
+    User findByClientId(Long clientId);
+
 }
