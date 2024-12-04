@@ -8,6 +8,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.job4j.api.model.User;
+import ru.job4j.api.storage.UserRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,10 +32,14 @@ public class TelegramRemoteService extends TelegramLongPollingBot {
         MOOD_RESP.put("sleepy", "Пора на боковую! Даже супергерои отдыхают, ты не исключение.");
     }
 
+    private final UserRepository userRepository;
+
     public TelegramRemoteService(@Value("${telegram.bot.name}") String botName,
-                           @Value("${telegram.bot.token}") String botToken) {
+                                 @Value("${telegram.bot.token}") String botToken,
+                                 UserRepository userRepository) {
         this.botName = botName;
         this.botToken = botToken;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -48,18 +54,26 @@ public class TelegramRemoteService extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            var message = update.getMessage();
+            if ("/start".equals(message.getText())) {
+                long chatId = message.getChatId();
+                var user = new User();
+                user.setClientId(message.getFrom().getId());
+                user.setChatId(chatId);
+                userRepository.save(user);
+                send(sendButtons(chatId));
+            }
+        }
+
         if (update.hasCallbackQuery()) {
             var data = update.getCallbackQuery().getData();
             var chatId = update.getCallbackQuery().getMessage().getChatId();
             send(new SendMessage(String.valueOf(chatId), MOOD_RESP.get(data)));
         }
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            long chatId = update.getMessage().getChatId();
-            send(sendButtons(chatId));
-        }
     }
 
-    private void send(SendMessage message) {
+    public void send(SendMessage message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
