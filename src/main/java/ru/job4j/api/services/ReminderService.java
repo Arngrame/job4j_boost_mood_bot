@@ -7,16 +7,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import ru.job4j.api.storage.UserRepository;
-import ru.job4j.api.telegram.TelegramRemoteService;
+import ru.job4j.api.telegram.TelegramBotService;
 
 @Service
 public class ReminderService implements BeanNameAware {
 
-    private final TelegramRemoteService telegramRemoteService;
+    private final TelegramBotService telegramBotService;
     private final UserRepository userRepository;
 
-    public ReminderService(TelegramRemoteService tgRemoteService, UserRepository userRepository) {
-        this.telegramRemoteService = tgRemoteService;
+    public ReminderService(TelegramBotService tgRemoteService, UserRepository userRepository) {
+        this.telegramBotService = tgRemoteService;
         this.userRepository = userRepository;
     }
 
@@ -26,7 +26,7 @@ public class ReminderService implements BeanNameAware {
             var message = new SendMessage();
             message.setChatId(user.getChatId());
             message.setText("Ping");
-            telegramRemoteService.send(message);
+            telegramBotService.send(message);
         }
     }
 

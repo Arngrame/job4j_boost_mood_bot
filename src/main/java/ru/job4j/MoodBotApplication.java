@@ -15,7 +15,7 @@ import ru.job4j.api.model.MoodContent;
 import ru.job4j.api.storage.AwardRepository;
 import ru.job4j.api.storage.MoodContentRepository;
 import ru.job4j.api.storage.MoodRepository;
-import ru.job4j.api.telegram.TelegramRemoteService;
+import ru.job4j.api.telegram.TelegramBotService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,7 @@ public class MoodBotApplication {
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
         return args -> {
-            var bot = ctx.getBean(TelegramRemoteService.class);
+            var bot = ctx.getBean(TelegramBotService.class);
             var botsApi = new TelegramBotsApi(DefaultBotSession.class);
             try {
                 botsApi.registerBot(bot);
