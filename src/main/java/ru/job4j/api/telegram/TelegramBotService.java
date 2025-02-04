@@ -15,7 +15,7 @@ public class TelegramBotService {
     }
 
     public void receive(Content content) {
-        handler.receive(content);
+        System.out.println("Content: " + content);
     }
 
     @PostConstruct
