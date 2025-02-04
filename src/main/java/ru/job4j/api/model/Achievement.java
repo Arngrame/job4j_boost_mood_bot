@@ -27,6 +27,9 @@ public class Achievement {
     @JoinColumn(name = "award_id")
     private Award award;
 
+    public Achievement() {
+    }
+
     public Long getId() {
         return id;
     }

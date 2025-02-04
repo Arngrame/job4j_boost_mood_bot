@@ -27,6 +27,9 @@ public class MoodLog {
 
     private long createdAt;
 
+    public MoodLog() {
+    }
+
     public Long getId() {
         return id;
     }
