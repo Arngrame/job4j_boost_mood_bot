@@ -1,47 +1,47 @@
 package ru.job4j.api.services;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import ru.job4j.api.storage.UserRepository;
-import ru.job4j.api.telegram.TelegramBotService;
+import ru.job4j.api.content.Content;
+import ru.job4j.api.model.User;
+import ru.job4j.api.storage.MoodLogRepository;
+import ru.job4j.api.telegram.SendContent;
+import ru.job4j.api.telegram.TelegramUI;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
-public class ReminderService implements BeanNameAware {
+public class ReminderService {
+    private final SendContent sendContent;
+    private final MoodLogRepository moodLogRepository;
+    private final TelegramUI telegramUI;
 
-    private final TelegramBotService telegramBotService;
-    private final UserRepository userRepository;
-
-    public ReminderService(TelegramBotService tgRemoteService, UserRepository userRepository) {
-        this.telegramBotService = tgRemoteService;
-        this.userRepository = userRepository;
+    public ReminderService(SendContent sendContent,
+                           MoodLogRepository moodLogRepository, TelegramUI telegramUI) {
+        this.sendContent = sendContent;
+        this.moodLogRepository = moodLogRepository;
+        this.telegramUI = telegramUI;
     }
 
-    @Scheduled(fixedRateString = "${remind.period}")
-    public void ping() {
-        for (var user : userRepository.findAll()) {
-            var message = new SendMessage();
-            message.setChatId(user.getChatId());
-            message.setText("Ping");
-            telegramBotService.send(message);
+    @Scheduled(fixedRateString = "${recommendation.alert.period}")
+    public void remindUsers() {
+        var startOfDay = LocalDate.now()
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
+        var endOfDay = LocalDate.now()
+                .plusDays(1)
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli() - 1;
+
+        for (User user : moodLogRepository.findUsersWhoDidNotVoteToday(startOfDay, endOfDay)) {
+            var content = new Content(user.getChatId());
+            content.setText("Как настроение?");
+            content.setMarkup(telegramUI.buildButtons());
+            sendContent.send(content);
         }
     }
 
-    @PostConstruct
-    public void init() {
-        System.out.println("ReminderService bean is going through init.");
-    }
-
-    @PreDestroy
-    public void destroy() {
-        System.out.println("ReminderService bean will be destroyed now.");
-    }
-
-    @Override
-    public void setBeanName(String name) {
-        System.out.println("Bean name : " + name);
-    }
 }
