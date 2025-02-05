@@ -28,4 +28,10 @@ public interface MoodLogRepository extends CrudRepository<MoodLog, Long> {
                 .distinct()
                 .toList();
     }
+
+    default List<MoodLog> findByUserChatId(long chatId) {
+        return findAll().stream()
+                .filter(moodLog -> moodLog.getUser().getChatId() == chatId)
+                .toList();
+    }
 }

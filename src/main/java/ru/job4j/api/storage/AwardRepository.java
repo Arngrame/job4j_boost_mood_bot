@@ -11,5 +11,5 @@ public interface AwardRepository extends CrudRepository<Award, Long> {
 
     List<Award> findAll();
 
-    Award save(Award moodLog);
+    Award save(Award award);
 }
