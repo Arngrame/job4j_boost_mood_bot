@@ -45,7 +45,7 @@ class AchievementServiceTest {
         awardRepository.save(award2);
 
         User user1 = new User(1L, 100, 10);
-        User user2 = new User(1L, 200, 20);
+        User user2 = new User(2L, 200, 20);
 
         MoodLog ml1 = createFakeMoodLog(1L, "bad", false, user1);
         MoodLog ml20 = createFakeMoodLog(20L, "nice", true, user2);
