@@ -1,7 +1,5 @@
 package ru.job4j.api.recommendation;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
 import ru.job4j.api.content.Content;
 import ru.job4j.api.content.ContentProvider;
@@ -11,6 +9,7 @@ import java.util.Random;
 
 @Service
 public class RecommendationEngine {
+
     private final List<ContentProvider> contents;
     private static final Random RND = new Random(System.currentTimeMillis());
 
@@ -22,15 +21,4 @@ public class RecommendationEngine {
         var index = RND.nextInt(0, contents.size());
         return contents.get(index).byMood(chatId, moodId);
     }
-
-    @PostConstruct
-    public void init() {
-        System.out.println("RecommendationEngine bean is going through init.");
-    }
-
-    @PreDestroy
-    public void destroy() {
-        System.out.println("RecommendationEngine bean will be destroyed now.");
-    }
-
 }

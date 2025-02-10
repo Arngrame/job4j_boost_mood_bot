@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
@@ -15,7 +16,8 @@ import ru.job4j.api.model.MoodContent;
 import ru.job4j.api.storage.AwardRepository;
 import ru.job4j.api.storage.MoodContentRepository;
 import ru.job4j.api.storage.MoodRepository;
-import ru.job4j.api.telegram.TelegramBotService;
+import ru.job4j.api.telegram.RealTelegramBotService;
+import ru.job4j.api.telegram.SendContent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +33,10 @@ public class MoodBotApplication {
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
         return args -> {
-            var bot = ctx.getBean(TelegramBotService.class);
+            var bot = (TelegramLongPollingBot) ctx.getBean(SendContent.class);
             var botsApi = new TelegramBotsApi(DefaultBotSession.class);
             try {
                 botsApi.registerBot(bot);
-                System.out.println("Бот успешно зарегистрирован");
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }

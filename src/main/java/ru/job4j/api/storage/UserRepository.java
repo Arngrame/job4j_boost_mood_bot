@@ -9,9 +9,5 @@ import java.util.List;
 @Repository
 public interface UserRepository extends CrudRepository<User, Long> {
 
-    List<User> findAll();
-
     User findByClientId(Long clientId);
-
-    User save(User user);
 }

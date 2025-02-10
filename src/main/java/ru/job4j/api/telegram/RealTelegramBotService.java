@@ -1,6 +1,8 @@
 package ru.job4j.api.telegram;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendAudio;
@@ -8,27 +10,24 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import ru.job4j.api.condition.OnRealCondition;
 import ru.job4j.api.content.Content;
-import ru.job4j.api.model.User;
-import ru.job4j.api.storage.UserRepository;
 
+@Conditional(OnRealCondition.class)
 @Service
-public class TelegramBotService extends TelegramLongPollingBot implements SendContent {
+public class RealTelegramBotService extends TelegramLongPollingBot implements SendContent {
 
     private final String botName;
     private final String botToken;
 
-    private final UserRepository userRepository;
-    private final TelegramUI telegramUI;
+    private BotCommandHandler commandHandler;
 
-    public TelegramBotService(@Value("${telegram.bot.name}") String botName,
-                                 @Value("${telegram.bot.token}") String botToken,
-                                 UserRepository userRepository,
-                                 TelegramUI telegramUI) {
+    public RealTelegramBotService(@Value("${telegram.bot.name}") String botName,
+                                  @Value("${telegram.bot.token}") String botToken,
+                                  BotCommandHandler commandHandler) {
         this.botName = botName;
         this.botToken = botToken;
-        this.userRepository = userRepository;
-        this.telegramUI = telegramUI;
+        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -44,39 +43,10 @@ public class TelegramBotService extends TelegramLongPollingBot implements SendCo
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
-            var message = update.getMessage();
-            if ("/start".equals(message.getText())) {
-                long chatId = message.getChatId();
-                var user = new User();
-                user.setClientId(message.getFrom().getId());
-                user.setChatId(chatId);
-                userRepository.save(user);
-                send(sendButtons(chatId));
-            }
+            commandHandler.commands(update.getMessage()).ifPresent(this::send);
+        } else if (update.hasCallbackQuery()) {
+            commandHandler.handleCallback(update.getCallbackQuery()).ifPresent(this::send);
         }
-
-        if (update.hasCallbackQuery()) {
-            var data = update.getCallbackQuery().getData();
-            var chatId = update.getCallbackQuery().getMessage().getChatId();
-            send(new SendMessage(String.valueOf(chatId), data));
-        }
-    }
-
-    public void send(SendMessage message) {
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public SendMessage sendButtons(long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Как настроение сегодня?");
-        message.setReplyMarkup(telegramUI.buildButtons());
-
-        return message;
     }
 
     @Override
@@ -91,7 +61,7 @@ public class TelegramBotService extends TelegramLongPollingBot implements SendCo
                 sendPhoto(content, text, chatId);
             } else if (content.getMarkup() != null) {
                 sendMarkedUpText(content, text, chatId);
-            } else if (content.getText() != null || !content.getText().isEmpty()) {
+            } else if (content.getText() != null && StringUtils.isNotEmpty(content.getText())) {
                 sendSimpleText(text, chatId);
             }
         } catch (TelegramApiException ex) {
