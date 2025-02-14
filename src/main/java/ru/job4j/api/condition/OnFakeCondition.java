@@ -8,6 +8,6 @@ public class OnFakeCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return "fake".equals(System.getProperty("telegram.mode"));
+        return "fake".equals(context.getEnvironment().getProperty("telegram.mode"));
     }
 }

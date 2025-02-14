@@ -1,39 +1,34 @@
 package ru.job4j.api.telegram;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.job4j.api.condition.OnFakeCondition;
 import ru.job4j.api.content.Content;
-import ru.job4j.api.printer.ConsolePrinter;
 import ru.job4j.api.printer.Printer;
+
+import java.util.UUID;
 
 @Conditional(OnFakeCondition.class)
 @Service
 public class FakeTelegramBotService extends TelegramLongPollingBot implements SendContent {
 
-    private final String botName;
-    private final String botToken;
     private Printer printer;
 
-    public FakeTelegramBotService(@Value("${telegram.bot.name}") String botName,
-                                  @Value("${telegram.bot.token}") String botToken) {
-        this.botName = botName;
-        this.botToken = botToken;
-        this.printer = new ConsolePrinter();
+    public FakeTelegramBotService(Printer printer) {
+        this.printer = printer;
     }
 
     @Override
     public String getBotToken() {
-        return botToken;
+        return UUID.randomUUID().toString();
     }
 
     @Override
     public String getBotUsername() {
-        return botName;
+        return "bot-fake-name";
     }
 
     @Override
