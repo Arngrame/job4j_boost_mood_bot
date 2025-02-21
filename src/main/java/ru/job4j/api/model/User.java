@@ -17,11 +17,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "client_id")
+    @Column(unique = true, name = "client_id")
     private long clientId;
 
     @Column(name = "chat_id")
     private long chatId;
+
+    @Column(name = "daily_advice_on")
+    private Boolean dailyAdviceOn;
 
     public User() {
     }
@@ -30,6 +33,13 @@ public class User {
         this.id = id;
         this.clientId = clientId;
         this.chatId = chatId;
+    }
+
+    public User(Long id, long clientId, long chatId, boolean dailyAdviceOn) {
+        this.id = id;
+        this.clientId = clientId;
+        this.chatId = chatId;
+        this.dailyAdviceOn = dailyAdviceOn;
     }
 
     public Long getId() {
@@ -54,6 +64,14 @@ public class User {
 
     public void setChatId(long chatId) {
         this.chatId = chatId;
+    }
+
+    public boolean isDailyAdviceOn() {
+        return dailyAdviceOn;
+    }
+
+    public void setDailyAdviceOn(boolean dailyAdviceOn) {
+        this.dailyAdviceOn = dailyAdviceOn;
     }
 
     @Override

@@ -2,25 +2,16 @@ package ru.job4j.api.services;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import ru.job4j.api.content.Content;
 import ru.job4j.api.events.UserEvent;
-import ru.job4j.api.model.Achievement;
-import ru.job4j.api.model.Mood;
-import ru.job4j.api.model.MoodLog;
-import ru.job4j.api.model.User;
+import ru.job4j.api.model.*;
 import ru.job4j.api.recommendation.RecommendationEngine;
-import ru.job4j.api.storage.AchievementRepository;
-import ru.job4j.api.storage.MoodLogRepository;
-import ru.job4j.api.storage.MoodRepository;
-import ru.job4j.api.storage.UserRepository;
+import ru.job4j.api.storage.*;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 
 @Service
@@ -32,6 +23,7 @@ public class MoodService {
     private final UserRepository userRepository;
     private final AchievementRepository achievementRepository;
     private final MoodRepository moodRepository;
+    private final AdviceRepository adviceRepository;
     private final DateTimeFormatter formatter = DateTimeFormatter
             .ofPattern("dd-MM-yyyy HH:mm")
             .withZone(ZoneId.systemDefault());
@@ -44,12 +36,14 @@ public class MoodService {
                        UserRepository userRepository,
                        AchievementRepository achievementRepository,
                        MoodRepository moodRepository,
+                       AdviceRepository adviceRepository,
                        ApplicationEventPublisher publisher) {
         this.moodLogRepository = moodLogRepository;
         this.recommendationEngine = recommendationEngine;
         this.userRepository = userRepository;
         this.achievementRepository = achievementRepository;
         this.moodRepository = moodRepository;
+        this.adviceRepository = adviceRepository;
         this.publisher = publisher;
     }
 
@@ -138,5 +132,33 @@ public class MoodService {
             sb.append(formattedDate).append(": ").append(log.getAward().getTitle()).append(System.lineSeparator());
         });
         return sb.toString();
+    }
+
+    public Optional<Content> setDailyAdvice(long chatId, long clientId, boolean isEnabled) {
+        User byClientId = userRepository.findByClientId(clientId);
+        byClientId.setDailyAdviceOn(isEnabled);
+        userRepository.save(byClientId);
+
+        Content content = new Content(chatId);
+        content.setText("Опция \"Совет дня\" " + (isEnabled ? "включена" : "выключена"));
+        return Optional.of(content);
+    }
+
+    public Optional<Content> getDailyAdvice(long chatId, long clientId) {
+        boolean moodType = moodLogRepository.findAll().stream()
+                .filter(value -> value.getUser().getClientId() == clientId)
+                .max(Comparator.comparing(MoodLog::getCreatedAt))
+                .get().getMood().isGood();
+
+        List<Advice> adviceList = adviceRepository.findAll()
+                .stream().filter(advice -> advice.isGood() == moodType).toList();
+
+        Random rnd = new Random();
+        Advice randomAdvice = adviceList.get(rnd.nextInt(adviceList.size()));
+
+        Content content = new Content(chatId);
+        content.setText(randomAdvice.getText() + System.lineSeparator() + randomAdvice.getDescription());
+
+        return Optional.of(content);
     }
 }

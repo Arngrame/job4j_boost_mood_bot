@@ -1,5 +1,9 @@
 package ru.job4j.api.telegram;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -12,6 +16,8 @@ import java.util.Optional;
 
 @Service
 public class BotCommandHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BotCommandHandler.class);
 
     private final UserRepository userRepository;
     private final MoodService moodService;
@@ -35,13 +41,32 @@ public class BotCommandHandler {
             case "/week_mood_log" -> moodService.weekMoodLogCommand(chatId, clientId);
             case "/month_mood_log" -> moodService.monthMoodLogCommand(chatId, clientId);
             case "/award" -> moodService.awards(chatId, clientId);
+            case "/daily_advice" -> handleDailyAdviceCommand(chatId, clientId);
+            default -> Optional.empty();
+        };
+    }
+
+    Optional<Content> handleDailyAdviceCallback(CallbackQuery callbackQuery) {
+        Long clientId = callbackQuery.getFrom().getId();
+        User byClientId = userRepository.findByClientId(clientId);
+        Long chatId = byClientId.getChatId();
+
+        return switch (callbackQuery.getData()) {
+            case "/daily_advice_on" -> moodService.setDailyAdvice(chatId, clientId, true);
+            case "/daily_advice_off" -> moodService.setDailyAdvice(chatId, clientId, false);
+            case "/daily_advice_get" -> moodService.getDailyAdvice(chatId, clientId);
             default -> Optional.empty();
         };
     }
 
     Optional<Content> handleCallback(CallbackQuery callback) {
+        Long clientId = callback.getFrom().getId();
+        if (callback.getData() != null && callback.getData().contains("/daily_advice_")) {
+            return handleDailyAdviceCallback(callback);
+        }
+
         Long moodId = Long.valueOf(callback.getData());
-        User user = userRepository.findByClientId(callback.getFrom().getId());
+        User user = userRepository.findByClientIdAndChatId(clientId, callback.getMessage().getChatId());
         Content content = moodService.chooseMood(user, moodId);
         return Optional.of(content);
     }
@@ -50,11 +75,34 @@ public class BotCommandHandler {
         User user = new User();
         user.setClientId(clientId);
         user.setChatId(chatId);
-        userRepository.save(user);
+
+        try {
+            userRepository.save(user);
+        } catch (ConstraintViolationException | DataIntegrityViolationException ex) {
+            LOGGER.warn("User already exists", ex);
+        }
 
         var content = new Content(user.getChatId());
         content.setText("Как настроение?");
         content.setMarkup(telegramUI.buildButtons());
+
+        return Optional.of(content);
+    }
+
+    Optional<Content> handleDailyAdviceCommand(long chatId, Long clientId) {
+        User user = new User();
+        user.setClientId(clientId);
+        user.setChatId(chatId);
+
+        try {
+            userRepository.save(user);
+        } catch (ConstraintViolationException | DataIntegrityViolationException ex) {
+            LOGGER.warn("User already exists", ex);
+        }
+
+        var content = new Content(user.getChatId());
+        content.setText("Совет дня:");
+        content.setMarkup(telegramUI.buildDailyAdviceButtons());
 
         return Optional.of(content);
     }

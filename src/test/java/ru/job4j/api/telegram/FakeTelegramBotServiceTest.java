@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.TestPropertySource;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -37,8 +36,8 @@ class FakeTelegramBotServiceTest {
 
         fakeTelegramBotService.onUpdateReceived(update);
 
-        // 2 - because of absence of knowledge how to exclude reminder service for concrete independent of reminding logic case/test
-        verify(consolePrinter, times(2)).print(anyString());
+        // 2 - don't know how to exclude reminder service for concrete independent of reminding logic case/test
+        verify(consolePrinter, times(1)).print(anyString());
     }
 
 }
