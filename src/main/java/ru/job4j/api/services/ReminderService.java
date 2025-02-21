@@ -59,9 +59,11 @@ public class ReminderService {
     @Scheduled(cron = "${cron.dailyAdvice}", zone = "GMT+4:00")
     public void remindDailyAdvice() {
         List<MoodLog> allMoodLogs = moodLogRepository.findAll();
-        Set<User> allUsers = allMoodLogs.stream().map(MoodLog::getUser).collect(Collectors.toSet());
+        Set<User> userWithEnabledDailyAdvice = allMoodLogs.stream()
+                .map(MoodLog::getUser).filter(User::isDailyAdviceOn)
+                .collect(Collectors.toSet());
 
-        for (User user : allUsers) {
+        for (User user : userWithEnabledDailyAdvice) {
             boolean moodType = allMoodLogs.stream()
                     .filter(value -> value.getUser().equals(user))
                     .max(Comparator.comparing(MoodLog::getCreatedAt))
