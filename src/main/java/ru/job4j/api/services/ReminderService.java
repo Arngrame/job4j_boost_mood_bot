@@ -56,7 +56,7 @@ public class ReminderService {
         }
     }
 
-    @Scheduled(cron = "${cron.dailyAdvice}")
+    @Scheduled(cron = "${cron.dailyAdvice}", zone = "GMT+4:00")
     public void remindDailyAdvice() {
         List<MoodLog> allMoodLogs = moodLogRepository.findAll();
         Set<User> allUsers = allMoodLogs.stream().map(MoodLog::getUser).collect(Collectors.toSet());
