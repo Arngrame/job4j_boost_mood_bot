@@ -38,7 +38,6 @@ class FakeTelegramBotServiceTest {
 
         fakeTelegramBotService.onUpdateReceived(update);
 
-        // 2 - don't know how to exclude reminder service for concrete independent of reminding logic case/test
         verify(consolePrinter, times(1)).print(anyString());
     }
 
