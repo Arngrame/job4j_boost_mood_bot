@@ -21,3 +21,6 @@ out
 *.db
 
 logs
+
+config/*
+dev/*
