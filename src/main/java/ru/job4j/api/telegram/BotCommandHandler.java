@@ -1,9 +1,7 @@
 package ru.job4j.api.telegram;
 
-import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -11,8 +9,11 @@ import ru.job4j.api.content.Content;
 import ru.job4j.api.model.User;
 import ru.job4j.api.services.MoodService;
 import ru.job4j.api.storage.UserRepository;
+import ru.job4j.api.telegram.command.*;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 @Service
 public class BotCommandHandler {
@@ -21,14 +22,41 @@ public class BotCommandHandler {
 
     private final UserRepository userRepository;
     private final MoodService moodService;
-    private final TelegramUI telegramUI;
+    private final StartCommandHandler startCommandHandler;
+    private final WeekModLogCommandHandler weekModLogCommandHandler;
+    private final MonthMoodLogCommandHandler monthMoodLogCommandHandler;
+    private final AwardCommandHandler awardCommandHandler;
+    private final DailyAdviceCommandHandler dailyAdviceCommandHandler;
+
+    private Map<String, BiFunction<Long, Long, Optional<Content>>> commandDispatcher;
 
     public BotCommandHandler(UserRepository userRepository,
                              MoodService moodService,
-                             TelegramUI telegramUI) {
+                             StartCommandHandler startCommandHandler,
+                             WeekModLogCommandHandler weekModLogCommandHandler,
+                             MonthMoodLogCommandHandler monthMoodLogCommandHandler,
+                             AwardCommandHandler awardCommandHandler,
+                             DailyAdviceCommandHandler dailyAdviceCommandHandler) {
         this.userRepository = userRepository;
         this.moodService = moodService;
-        this.telegramUI = telegramUI;
+
+        this.startCommandHandler = startCommandHandler;
+        this.weekModLogCommandHandler = weekModLogCommandHandler;
+        this.monthMoodLogCommandHandler = monthMoodLogCommandHandler;
+        this.awardCommandHandler = awardCommandHandler;
+        this.dailyAdviceCommandHandler = dailyAdviceCommandHandler;
+
+        fillDispatcher();
+    }
+
+    private void fillDispatcher() {
+        commandDispatcher = Map.of(
+                BotCommands.START.name, startCommandHandler::execute,
+                BotCommands.WEEK_MOD_LOG.name, weekModLogCommandHandler::execute,
+                BotCommands.MONTH_MOD_LOG.name, monthMoodLogCommandHandler::execute,
+                BotCommands.AWARD.name, awardCommandHandler::execute,
+                BotCommands.DAILY_ADVICE.name, dailyAdviceCommandHandler::execute
+        );
     }
 
     Optional<Content> commands(Message message) {
@@ -36,14 +64,9 @@ public class BotCommandHandler {
         var clientId = message.getFrom().getId();
         var command = message.getText();
 
-        return switch (command) {
-            case "/start" -> handleStartCommand(chatId, clientId);
-            case "/week_mood_log" -> moodService.weekMoodLogCommand(chatId, clientId);
-            case "/month_mood_log" -> moodService.monthMoodLogCommand(chatId, clientId);
-            case "/award" -> moodService.awards(chatId, clientId);
-            case "/daily_advice" -> handleDailyAdviceCommand(chatId, clientId);
-            default -> Optional.empty();
-        };
+        BiFunction<Long, Long, Optional<Content>> func =
+                this.commandDispatcher.getOrDefault(command, (aLong, aLong2) -> Optional.empty());
+        return func.apply(chatId, clientId);
     }
 
     Optional<Content> handleDailyAdviceCallback(CallbackQuery callbackQuery) {
@@ -71,39 +94,26 @@ public class BotCommandHandler {
         return Optional.of(content);
     }
 
-    private Optional<Content> handleStartCommand(long chatId, Long clientId) {
-        User user = new User();
-        user.setClientId(clientId);
-        user.setChatId(chatId);
+    private enum BotCommands {
 
-        try {
-            userRepository.save(user);
-        } catch (ConstraintViolationException | DataIntegrityViolationException ex) {
-            LOGGER.warn("User already exists", ex);
+        START("/start"),
+        WEEK_MOD_LOG("/week_mood_log"),
+        MONTH_MOD_LOG("/month_mood_log"),
+        AWARD("/award"),
+        DAILY_ADVICE("/daily_advice"),
+        DAILY_ADVICE_ON("/daily_advice_on"),
+        DAILY_ADVICE_OFF("/daily_advice_off"),
+        DAILY_ADVICE_GET("/daily_advice_get");
+
+        private final String name;
+
+        BotCommands(String name) {
+            this.name = name;
         }
 
-        var content = new Content(user.getChatId());
-        content.setText("Как настроение?");
-        content.setMarkup(telegramUI.buildButtons());
-
-        return Optional.of(content);
-    }
-
-    Optional<Content> handleDailyAdviceCommand(long chatId, Long clientId) {
-        User user = new User();
-        user.setClientId(clientId);
-        user.setChatId(chatId);
-
-        try {
-            userRepository.save(user);
-        } catch (ConstraintViolationException | DataIntegrityViolationException ex) {
-            LOGGER.warn("User already exists", ex);
+        @Override
+        public String toString() {
+            return name;
         }
-
-        var content = new Content(user.getChatId());
-        content.setText("Совет дня:");
-        content.setMarkup(telegramUI.buildDailyAdviceButtons());
-
-        return Optional.of(content);
     }
 }
