@@ -1,6 +1,5 @@
 package ru.job4j.api.telegram;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
@@ -9,15 +8,9 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.job4j.api.condition.OnRealCondition;
 import ru.job4j.api.content.Content;
-import ru.job4j.api.telegram.sender.AudioContentSender;
-import ru.job4j.api.telegram.sender.MarkedUpTextContentSender;
-import ru.job4j.api.telegram.sender.PhotoContentSender;
-import ru.job4j.api.telegram.sender.SimpleTextContentSender;
+import ru.job4j.api.telegram.sender.ContentSender;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+import java.util.List;
 
 @Conditional(OnRealCondition.class)
 @Service
@@ -27,27 +20,18 @@ public class RealTelegramBotService extends TelegramLongPollingBot implements Se
     private final String botToken;
 
     private BotCommandHandler commandHandler;
-    private AudioContentSender audioContentSender;
-    private PhotoContentSender photoContentSender;
-    private SimpleTextContentSender simpleTextContentSender;
-    private MarkedUpTextContentSender markedUpTextContentSender;
+
+    private List<ContentSender> senders;
 
     public RealTelegramBotService(@Value("${telegram.bot.name}") String botName,
                                   @Value("${telegram.bot.token}") String botToken,
                                   BotCommandHandler commandHandler,
-                                  AudioContentSender audioContentSender,
-                                  PhotoContentSender photoContentSender,
-                                  SimpleTextContentSender simpleTextContentSender,
-                                  MarkedUpTextContentSender markedUpTextContentSender
+                                  List<ContentSender> senders
     ) {
         this.botName = botName;
         this.botToken = botToken;
         this.commandHandler = commandHandler;
-
-        this.audioContentSender = audioContentSender;
-        this.photoContentSender = photoContentSender;
-        this.simpleTextContentSender = simpleTextContentSender;
-        this.markedUpTextContentSender = markedUpTextContentSender;
+        this.senders = senders;
     }
 
     @Override
@@ -72,14 +56,10 @@ public class RealTelegramBotService extends TelegramLongPollingBot implements Se
     @Override
     public void send(Content content) {
         try {
-            if (content.getAudio() != null) {
-                audioContentSender.sendMessage(content, this);
-            } else if (content.getPhoto() != null) {
-                photoContentSender.sendMessage(content, this);
-            } else if (content.getMarkup() != null) {
-                markedUpTextContentSender.sendMessage(content, this);
-            } else if (content.getText() != null && StringUtils.isNotEmpty(content.getText())) {
-                simpleTextContentSender.sendMessage(content, this);
+            for (ContentSender sender : senders) {
+                if (sender.isApplicableToSend(content)) {
+                    sender.sendMessage(content, this);
+                }
             }
         } catch (TelegramApiException ex) {
             throw new SendContentException(ex);

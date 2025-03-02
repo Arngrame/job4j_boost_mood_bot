@@ -10,6 +10,11 @@ import ru.job4j.api.content.Content;
 public class PhotoContentSender implements ContentSender {
 
     @Override
+    public boolean isApplicableToSend(Content content) {
+        return content.getPhoto() != null;
+    }
+
+    @Override
     public void sendMessage(Content content, TelegramLongPollingBot bot) throws TelegramApiException {
         Long chatId = content.getChatId();
         String text = content.getText();

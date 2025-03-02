@@ -6,6 +6,8 @@ import ru.job4j.api.content.Content;
 
 public interface ContentSender {
 
+    boolean isApplicableToSend(Content content);
+
     void sendMessage(Content content, TelegramLongPollingBot bot) throws TelegramApiException;
 
 }
