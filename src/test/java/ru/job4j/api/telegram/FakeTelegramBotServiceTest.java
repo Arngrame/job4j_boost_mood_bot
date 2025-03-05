@@ -17,6 +17,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SpringBootTest
+@TestPropertySource(properties = "spring.config.additional-location=classpath:application-test.properties")
 class FakeTelegramBotServiceTest {
 
     @Autowired
@@ -37,8 +38,7 @@ class FakeTelegramBotServiceTest {
 
         fakeTelegramBotService.onUpdateReceived(update);
 
-        // 2 - because of absence of knowledge how to exclude reminder service for concrete independent of reminding logic case/test
-        verify(consolePrinter, times(2)).print(anyString());
+        verify(consolePrinter, times(1)).print(anyString());
     }
 
 }

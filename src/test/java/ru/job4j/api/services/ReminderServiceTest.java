@@ -6,6 +6,7 @@ import ru.job4j.api.content.Content;
 import ru.job4j.api.model.Mood;
 import ru.job4j.api.model.MoodLog;
 import ru.job4j.api.model.User;
+import ru.job4j.api.storage.AdviceFakeRepository;
 import ru.job4j.api.storage.MoodFakeRepository;
 import ru.job4j.api.storage.MoodLogFakeRepository;
 import ru.job4j.api.telegram.SendContent;
@@ -49,8 +50,11 @@ class ReminderServiceTest {
         var moodLogRepository = new MoodLogFakeRepository();
         moodLogRepository.save(moodLog);
 
+        var adviceRepository = new AdviceFakeRepository();
+
         var telegramUI = new TelegramUI(moodRepository);
-        ReminderService reminderService = new ReminderService(sendContent, moodLogRepository, telegramUI);
+        ReminderService reminderService = new ReminderService(sendContent, moodLogRepository,
+                telegramUI, adviceRepository);
         reminderService.remindUsers();
 
         assertThat(result.iterator().next().getMarkup().getKeyboard()
